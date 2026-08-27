@@ -128,4 +128,21 @@ void main() {
     expect(() => client.handleMessage(w.toBytes()), returnsNormally);
     client.dispose();
   });
+
+  test('desktop-style Initialize ([200] + undefined tag, 6 bytes) '
+      'completes ready', () async {
+    // The desktop ChannelServer emits `send([200], undefined)` on open:
+    // array header [200] (5 bytes) followed by the Undefined tag (1 byte).
+    final w = ValueWriter();
+    encodeValue(w, [ChannelClient.resInitialize]);
+    w.writeByte(0); // Undefined tag — decodeValue returns null
+    final body = w.toBytes();
+    expect(body, hasLength(6));
+
+    final client = ChannelClient(sendBody: (b) => sent.add(b));
+    client.handleMessage(Uint8List.fromList(body));
+
+    await expectLater(client.ready, completes);
+    client.dispose();
+  });
 }

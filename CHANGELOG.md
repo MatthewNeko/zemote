@@ -2,6 +2,12 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Fixed
+- 适配桌面端新版桥接协议：`ChannelClient` 现在接受桌面端真实的 Initialize 帧（值为 `[200]` + Undefined 标签，共 6 字节）。此前该帧因 header 长度校验（`>= 2`）被静默丢弃，导致所有 channel RPC 卡在 `channel init timeout (no Initialize frame from desktop)`，手机端无法获取对话与任务列表。
+- `rpc-frame-ack` 现在携带完整身份（`bridgeSessionId` + `bridgeGeneration` + `recoveryId`）。桌面端新版传输层对收到的每一帧（含 ack）做三字段全等校验，缺失 `bridgeGeneration` 的 ack 会被静默丢弃，45 秒宽限期后桌面端以 `rpc-transport-fault` 拆桥并陷入无限恢复循环。
+
 ## [0.4.2] - 2026-08-27
 
 ### Added

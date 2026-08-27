@@ -202,6 +202,46 @@ void main() {
     expect(ack['bridgeSessionId'], 'bridge-1');
   });
 
+  test('ack carries the full identity (generation + recoveryId)', () async {
+    // The desktop's transport validates the FULL identity (bridgeSessionId,
+    // bridgeGeneration AND recoveryId, exact equality) on every inbound
+    // rpc-frame AND rpc-frame-ack. An ack without bridgeGeneration is
+    // silently dropped, the un-acked message is replayed, and after a 45s
+    // grace the desktop degrades the bridge with rpc-transport-fault.
+    sent.clear();
+    final genTransport = RpcFrameTransport(
+      bridgeSessionId: 'bridge-1',
+      bridgeGeneration: 10,
+      recoveryId: 'recovery-1',
+      sendPayload: (p) => sent.add(p),
+    );
+    genTransport.messages.listen((_) {});
+    final payload = Uint8List.fromList([1, 2, 3]);
+    genTransport.acceptPayload({
+      'zcode_type': 'rpc-frame',
+      'bridgeSessionId': 'bridge-1',
+      'bridgeGeneration': 10,
+      'recoveryId': 'recovery-1',
+      'messageSeq': 1,
+      'fragmentIndex': 0,
+      'fragmentCount': 1,
+      'messageBytes': 3,
+      'dataBase64': base64.encode(payload),
+      'checksum': {'algorithm': 'crc32', 'value': Crc32.hexOf(payload)},
+    });
+    await Future.delayed(Duration.zero);
+    genTransport.dispose();
+
+    final ack = sent.firstWhere(
+      (p) => p['zcode_type'] == 'rpc-frame-ack',
+      orElse: () => <String, dynamic>{},
+    );
+    expect(ack['bridgeSessionId'], 'bridge-1');
+    expect(ack['bridgeGeneration'], 10);
+    expect(ack['recoveryId'], 'recovery-1');
+    expect(ack['ackMessageSeq'], 1);
+  });
+
   test('sendMessage throws on empty payload', () {
     expect(
       () => transport.sendMessage(Uint8List(0)),

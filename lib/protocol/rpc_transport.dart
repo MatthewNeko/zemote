@@ -157,9 +157,15 @@ class RpcFrameTransport {
         onLog?.call(
             '[rpc] message $messageSeq assembled (${message.length} bytes)');
         _messageController.add(message);
+        // The desktop's transport validates the FULL identity (bridgeSessionId
+        // AND bridgeGeneration AND recoveryId, exact equality) on every
+        // inbound rpc-frame AND rpc-frame-ack; an ack without
+        // bridgeGeneration is silently dropped, the un-acked message gets
+        // replayed, and after a 45s grace the desktop degrades the bridge
+        // with `rpc-transport-fault`.
         sendPayload({
           'zcode_type': 'rpc-frame-ack',
-          'bridgeSessionId': bridgeSessionId,
+          ..._identity,
           'ackMessageSeq': messageSeq,
         });
       } else {
