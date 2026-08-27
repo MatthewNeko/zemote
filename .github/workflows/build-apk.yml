@@ -67,6 +67,14 @@ jobs:
           md5sum zemote-armeabi-v7a.apk > zemote-armeabi-v7a.apk.md5
           md5sum zemote-x86_64.apk > zemote-x86_64.apk.md5
 
+      - name: Upload APKs to workflow artifacts
+        uses: actions/upload-artifact@3cea5372237819ed00197abe415a8142005cdb17 # v3
+        with:
+          name: apk-builds
+          path: build/app/outputs/flutter-apk/zemote-*.apk*
+          retention-days: 30
+          compression-level: 0
+
       - name: Prepare release notes
         if: startsWith(github.ref, 'refs/tags/')
         shell: pwsh
