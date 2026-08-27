@@ -8,6 +8,24 @@
 - 适配桌面端新版桥接协议：`ChannelClient` 现在接受桌面端真实的 Initialize 帧（值为 `[200]` + Undefined 标签，共 6 字节）。此前该帧因 header 长度校验（`>= 2`）被静默丢弃，导致所有 channel RPC 卡在 `channel init timeout (no Initialize frame from desktop)`，手机端无法获取对话与任务列表。
 - `rpc-frame-ack` 现在携带完整身份（`bridgeSessionId` + `bridgeGeneration` + `recoveryId`）。桌面端新版传输层对收到的每一帧（含 ack）做三字段全等校验，缺失 `bridgeGeneration` 的 ack 会被静默丢弃，45 秒宽限期后桌面端以 `rpc-transport-fault` 拆桥并陷入无限恢复循环。
 
+## [0.4.4] - 2026-08-27
+
+### Fixed
+- 思考过程改为默认展开的高对比面板，浅色和深色主题下均使用明确背景、边框和可读文字。
+- 工具调用卡片提升背景与边框对比度，运行中的工具默认展开，输入/输出内容更易辨识。
+- Markdown 标题、列表和表格显式使用主题文字色，修复部分主题下文字与背景对比不足。
+
+## [0.4.3] - 2026-08-27
+
+### Fixed
+- 修复桌面发送的合法单元素 Channel Initialize 帧 `[200]` 被丢弃，导致 `listTasks` 和 sessions-index 永远等待、会话列表无数据的问题。
+- Conversation V4 握手恢复协议能力版本 `3.6.5`，不再错误使用 Zemote 应用版本参与桌面能力协商。
+- channel 任务数据与 sessions-index 实时数据改为独立保存再合并，空快照、晚到响应和订阅失败不再互相清空会话列表。
+
+### Tests
+- 使用真实桌面连接完成只读验证：`listTasks=1`、sessions-index `=2`、最终可见会话 `=2`。
+- 新增真实会话列表探针及 Initialize 单元素帧、双数据源空响应回归测试。
+
 ## [0.4.2] - 2026-08-27
 
 ### Added
@@ -18,6 +36,8 @@
 
 ### Fixed
 - sessions-index 快照到达后立即结束会话列表加载，不再被旧任务 RPC 的超时骨架屏遮住；空列表也能正常结束加载。
+- Conversation V4 握手恢复协议兼容版本 `3.6.5`，避免错误使用 Zemote `0.x` 版本导致 sessions-index 能力协商异常。
+- 修复 Channel 合法单元素 Initialize 帧 `[200]` 被误判为畸形帧的问题；该回归会导致所有任务 RPC 超时、会话列表无数据。
 
 ### Changed
 - 更新 APK 改为存放在应用内部 `files/update` 目录，FileProvider 仅暴露该目录。
